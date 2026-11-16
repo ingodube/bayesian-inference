@@ -4,13 +4,10 @@ import Plotly from "plotly.js-basic-dist-min";
 import { catalog, priorFamily } from "./catalog";
 import { compute, restartEngine } from "./engine";
 import { array, bindFigure, posteriorFigure } from "./figures.mjs";
+import { formatNumber as fmt } from "./format.mjs";
 import type { Model, Field, Panel, Request, Result, Summary } from "./types";
 import "./style.css";
 
-const fmt = (v: number | null | undefined) =>
-  v == null
-    ? "Not defined"
-    : new Intl.NumberFormat("en", { maximumSignificantDigits: 6 }).format(v);
 const base = import.meta.env.BASE_URL;
 let assets: Promise<any>;
 function definitions() {
@@ -113,7 +110,7 @@ function SummaryRow({ name, s }: { name: string; s: Summary }) {
       <td>{fmt(s.median.value)}</td>
       <td>{modeText(s)}</td>
       <td>
-        {fmt(s.interval.lower)} – {fmt(s.interval.upper)}
+        {s.interval.lower == null ? "Beyond numeric range" : fmt(s.interval.lower)} – {s.interval.upper == null ? "Beyond numeric range" : fmt(s.interval.upper)}
       </td>
     </tr>
   );
@@ -143,6 +140,8 @@ function PosteriorPanel({
         </label>
       </div>
       <Chart figure={figure} />
+      {!expanded && (panel.truth < panel.focus[0] || panel.truth > panel.focus[1]) && <p className="notice">True generating value: {fmt(panel.truth)} — outside the posterior-focused view. Select “Include prior range” to include it.</p>}
+      {panel.plot_note && <p className="notice">{panel.plot_note}</p>}
       <div className="table-wrap">
         <table>
           <thead>

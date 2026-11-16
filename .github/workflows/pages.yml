@@ -34,19 +34,24 @@ jobs:
         run: |
           Rscript --vanilla research-pipeline/tests.R
           Rscript --vanilla research-pipeline/export-fixtures.R
+          Rscript --vanilla research-pipeline/audit.R
           python dashboard/build.py
           python -m pytest dashboard/tests -q
           npm --prefix web run prepare:runtime
           npm --prefix web test
       - name: Verify native R against webR
         working-directory: web
-        run: node scripts/verify-parity.mjs
+        run: |
+          node scripts/verify-parity.mjs
+          node scripts/verify-parity.mjs ../artifacts/stress-fixtures.json
       - name: Build static application
         run: npm --prefix web run build
       - uses: actions/upload-artifact@v4
         with:
           name: statistical-validation
-          path: artifacts/parity-report.json
+          path: |
+            artifacts/parity-report.json
+            artifacts/stress-audit.json
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

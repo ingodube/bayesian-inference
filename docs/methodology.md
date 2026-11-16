@@ -8,6 +8,8 @@ The browser uses typed R objects through webR, never interpolation of input valu
 
 ## Parametrizations
 
+Plotting must not reject a valid posterior merely because a proper prior has unrepresentable tail quantiles. Prior intervals expose `status: numerical_limit` with null endpoints where needed; posterior intervals must remain finite. Curves are evaluated across both displayed distributions, and the expanded domain includes the generating truth even for improper reference priors. See the [stress audit](audit-2026-11-16.md) for regressions protecting these rules.
+
 - Normal(m, v) uses variance; R functions receive `sd=sqrt(v)`.
 - Gamma(a, b) is shape/rate with mean a/b.
 - Inverse-Gamma(a, b) is proportional to v^(-a-1) exp(-b/v), with mean b/(a-1) only for a>1 and finite variance only for a>2.

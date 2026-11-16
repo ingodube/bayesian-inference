@@ -42,4 +42,9 @@ test("undefined prior omitted, coincident summaries grouped, range controllable"
   assert.deepEqual(f.layout.xaxis.range, [-5, 5]);
   assert.equal(f.data.length, 5);
   assert.match(f.data[4].name, /Mean \/ Median \/ Mode/);
+  panel.truth = 1;
+  const coincident = posteriorFigure(defs, bindings, panel, true);
+  assert.equal(coincident.data.length, 5);
+  assert.match(coincident.data[3].name, /True generating value/);
+  assert.match(coincident.data[4].name, /Mean \/ Median \/ Mode/);
 });

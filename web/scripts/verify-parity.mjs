@@ -31,11 +31,28 @@ const r = new WebR({ interactive: false });
 await r.init();
 await r.evalRVoid(await readFile("../research-pipeline/engine.R", "utf8"));
 const fixtures = JSON.parse(
-  await readFile("../artifacts/parity-fixtures.json", "utf8"),
+  await readFile(process.argv[2] ?? "../artifacts/parity-fixtures.json", "utf8"),
 );
 let comparisons = 0;
+// Quantile grids may contain numerically coincident vertices on one runtime only.
+// Collapse only adjacent (x,y) duplicates, not distinct density or interval values.
+function vertices(curve) {
+  const out = [];
+  const same = (a,b) => Math.abs(a-b) <= 1e-12 * Math.max(Math.abs(a),Math.abs(b),Number.MIN_VALUE);
+  for (let i=0;i<curve.x.length;i++) {
+    const pair=[curve.x[i],curve.y[i]], last=out.at(-1);
+    if (!last || !same(pair[0],last[0]) || !same(pair[1],last[1])) out.push(pair);
+  }
+  return out;
+}
 function compare(a, b, path = "result") {
   if (path.endsWith("r_version")) return;
+  if (a && b && /\.(curve|prior_curve|shade)$/.test(path)) {
+    compare(vertices(a),vertices(b),`${path}.vertices`);
+    return;
+  }
+  if (Array.isArray(a) && (!Array.isArray(b) || a.length !== b.length))
+    throw Error(`${path}: array length ${a.length} != ${b?.length}`);
   if (typeof a === "number") {
     if (!Number.isFinite(b) || Math.abs(a - b) > 1e-8 + 1e-6 * Math.abs(a))
       throw Error(`${path}: ${a} != ${b}`);
@@ -56,7 +73,12 @@ try {
       const out = JSON.parse(
         await (await shelter.evalR("run_json(lab_request)")).toString(),
       );
-      compare(fixture.result, out);
+      try {
+        compare(fixture.result, out);
+      } catch (error) {
+        await writeFile('../artifacts/parity-failure.json', JSON.stringify({request: fixture.request, expected: fixture.result, actual: out}));
+        throw new Error(`${JSON.stringify(fixture.request)}: ${error.message}`);
+      }
       timings.push({
         model: fixture.request.model,
         mode: fixture.request.mode,

@@ -18,6 +18,8 @@ Initial implementation verification (2026-11-16): 83 native statistical checks p
 
 ## Real-device release gate
 
+The follow-up [functional stress audit](audit-2026-11-16.md) records 200 additional scenarios, deliberate prior conflicts, graphical regressions, numerical-limit handling and native/webR parity. The stress suite is now a deployment gate.
+
 Physical Android Chrome and iOS Safari performance/memory checks are **pending until executed on those devices**. A desktop browser narrowed to 390 px validates responsive layout only. Do not describe emulation or desktop webR timings as real-device validation.
 
 Record device, OS/browser version, cold-load time, n=2,500 update time, memory if observable, touch scrolling, layout, and pass/fail for all likelihoods. The initial webR download is substantially larger than a typical static page; lazy filesystem files remain on the same origin. A calculation timeout offers a worker restart and never silently switches to another inference implementation.

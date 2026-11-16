@@ -40,7 +40,8 @@ export function posteriorFigure(definitions, bindings, panel, expanded) {
   for (const [kind, value, label] of marks) {
     if (typeof value !== "number" || !Number.isFinite(value)) continue;
     const group = groups.find(
-      (g) => Math.abs(g.value - value) <= 1e-9 * Math.max(1, Math.abs(value)),
+      (g) => (g.kind === "truth") === (kind === "truth") &&
+        Math.abs(g.value - value) <= 1e-9 * Math.max(1, Math.abs(value)),
     );
     if (group) group.labels.push(label);
     else groups.push({ kind, value, labels: [label] });

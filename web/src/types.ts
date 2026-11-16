@@ -34,9 +34,10 @@ export interface Summary {
   median: Moment;
   variance: Moment;
   mode: { values: number | number[]; status: string };
-  interval: { lower: number; upper: number; width: number; level: number };
+  interval: { lower: number | null; upper: number | null; width: number | null; level: number; status: string };
 }
 export interface Panel {
+  plot_note?: string;
   target: string;
   truth: number;
   posterior: Record<string, unknown>;

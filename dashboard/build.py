@@ -31,6 +31,8 @@ def figure(kind):
                       line=dict(color="#273f4b", width=2), marker=dict(size=4),
                       hovertemplate="Value: %{x:.4g}<br>Height: %{y:.4g}<extra>Generating distribution</extra>")
     else:
+        # A wrapped mobile legend must not share space with the x-axis title.
+        f.update_layout(height=420, legend=dict(y=1.04, yanchor="bottom"))
         f.add_scatter(name="Credible interval", x=[], y=[], mode="lines", fill="tozeroy",
                       line=dict(width=0), fillcolor="rgba(21,121,119,0.16)", hoverinfo="skip")
         f.add_scatter(name="Prior", x=[], y=[], mode="lines", line=dict(color="#bb8855", width=2, dash="dash"))

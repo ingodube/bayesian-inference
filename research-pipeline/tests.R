@@ -50,4 +50,13 @@ q$level<-.8;near(run_request(q)$sample$values,b,"level preserves observations",t
 near(run_request(q)$sample$variance,var(b),"sample variance n-1")
 check(grepl('"panels":',run_json(req()),fixed=TRUE),"JSON result serialized")
 bad<-req();bad$prior$a<--1;check(grepl('"status":"error"',run_json(bad),fixed=TRUE),"Invalid hyperparameters error")
+q<-req('normal','variance');q$prior$a<-.001;q$prior$b<-.001
+out<-run_request(q)
+check(out$status=='posterior','Heavy-tailed proper prior must not hide valid posterior')
+check(nzchar(out$panels[[1]]$plot_note),'Numerical prior tail truncation disclosed')
+q<-req('normal','mean');q$prior$m<--100;q$prior$v<-.0001
+out<-run_request(q);p<-out$panels[[1]]
+check(min(p$prior_curve$x)<=min(p$focus)&&max(p$prior_curve$x)>=max(p$focus),'Prior evaluated across posterior viewport')
+q$prior$family<-'reference';out<-run_request(q);p<-out$panels[[1]]
+check(p$expanded[1]<=p$truth&&p$expanded[2]>=p$truth,'Expanded reference view includes truth')
 cat(count,"statistical checks passed.\n")

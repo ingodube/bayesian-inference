@@ -20,7 +20,7 @@ moment <- function(value, status="finite", reason="") {
   if(!is.finite(value)) return(list(value=NULL,status="undefined",reason=reason))
   list(value=value,status=status,reason="")
 }
-summarize_distribution <- function(d,level) {
+summarize_distribution <- function(d,level,strict=TRUE) {
   mean <- switch(d$type,beta=d$a/(d$a+d$b),gamma=d$a/d$b,
     ig=if(d$a>1) d$b/(d$a-1) else NA_real_,
     sqrtig=if(d$a>0.5) exp(0.5*log(d$b)+lgamma(d$a-0.5)-lgamma(d$a)) else NA_real_,
@@ -40,14 +40,16 @@ summarize_distribution <- function(d,level) {
     modes<-max(0,(d$a-1)/d$b); if(d$a<=1) mode_status<-"boundary"
   } else modes<-switch(d$type,ig=d$b/(d$a+1),sqrtig=sqrt(2*d$b/(2*d$a+1)),normal=d$m,student=d$m)
   ci<-dq(d,c((1-level)/2,(1+level)/2))
-  if(any(!is.finite(ci)))stop("Credible limits exceed numerical precision. Use less extreme hyperparameters.")
+  if(strict && any(!is.finite(ci)))stop("Credible limits exceed numerical precision. Use less extreme hyperparameters.")
   list(mean=moment(mean,reason="The mean does not exist for these parameters."),
        median=moment(dq(d,0.5)),variance=moment(variance,reason="The variance is not finite for these parameters."),
-       mode=list(values=unname(modes),status=mode_status),interval=list(lower=ci[1],upper=ci[2],width=diff(ci),level=level,method="equal_tailed"))
+       mode=list(values=unname(modes),status=mode_status),interval=list(lower=ci[1],upper=ci[2],width=diff(ci),level=level,method="equal_tailed",status=if(all(is.finite(ci)))"finite" else "numerical_limit"))
 }
 curve <- function(d, extra=numeric()) {
   p<-sort(unique(c(seq(0.0005,0.9995,length.out=401),seq(0.01,0.99,length.out=250))))
-  bounds<-dq(d,c(0.0005,0.9995)); x<-sort(unique(c(dq(d,p),seq(bounds[1],bounds[2],length.out=301),extra)))
+  quantiles<-dq(d,p); finite<-quantiles[is.finite(quantiles)]
+  if(length(finite)<2)stop("Distribution cannot be plotted at numerical precision.")
+  bounds<-range(finite); x<-sort(unique(c(finite,seq(bounds[1],bounds[2],length.out=301),extra[is.finite(extra)])))
   if(d$type %in% c("ig","sqrtig","gamma")) x<-x[x>0]
   if(d$type=="beta") x<-x[x>0 & x<1]
   y<-dd(d,x); ok<-is.finite(x)&is.finite(y)
@@ -81,8 +83,8 @@ observed_plot <- function(model,g,x) {
   discrete<-model %in% c("bernoulli","binomial","geometric","poisson")
   if(discrete && diff(range(x))<=100) {
     bx<-seq(min(x),max(x)); by<-tabulate(match(x,bx),length(bx))/length(x); widths<-rep(0.82,length(bx))
-    tx<-if(model=="bernoulli") 0:1 else if(model=="binomial") 0:g$m else if(model=="geometric") 0:qgeom(0.999,g$p) else 0:qpois(0.999,g$rate)
-    if(length(tx)>150) tx<-seq(min(x),max(x))
+    upper<-if(model=="bernoulli")1 else if(model=="binomial")g$m else if(model=="geometric")qgeom(0.999,g$p) else qpois(0.999,g$rate)
+    tx<-if(upper<=150)0:upper else seq(min(x),max(x))
     ty<-switch(model,bernoulli=dbinom(tx,1,g$p),binomial=dbinom(tx,g$m,g$p),geometric=dgeom(tx,g$p),poisson=dpois(tx,g$rate))
     note<-"Bars show observed proportions; markers show generating probabilities."
   } else {
@@ -151,7 +153,7 @@ posterior_models <- function(r,x) {
     pp<-if(ref)NULL else distribution("ig",a,b)
     pm<-if(ref)NULL else distribution("student",m=h$m,v=b/(a*h$k),df=2*a)
     note<-if(ref) "Improper joint reference p(mu,v) proportional to 1/v; this is not joint Jeffreys. No normalized prior marginals." else "A joint Normal-Inverse-Gamma prior; mu and variance are not independent. Intervals below are marginal, not a joint credible region."
-    return(list(items=list(list(prior=pm,posterior=md,target="Normal mean mu",truth=g$mean),list(prior=pp,posterior=pd,target="Normal variance sigma^2",truth=g$variance)),note=note,formula="k' = k+n; m' = (k*m0+n*xbar)/k'; a' = a+n/2; b' = b+SSE/2+k*n*(xbar-m0)^2/(2*k')"))
+    return(list(items=list(list(prior=pm,posterior=md,target="Normal mean mu",truth=g$mean),list(prior=pp,posterior=pd,target="Normal variance sigma^2",truth=g$variance)),note=note,formula=if(ref) "Reference p(mu,v) proportional to 1/v: v|x ~ IG((n-1)/2, SSE/2); mu|x ~ t(n-1, xbar, s/sqrt(n))" else "k' = k+n; m' = (k*m0+n*xbar)/k'; a' = a+n/2; b' = b+SSE/2+k*n*(xbar-m0)^2/(2*k')"))
   }
   list(items=list(list(prior=p,posterior=post,target=target,truth=truth)),note=prior_note,formula=formula)
 }
@@ -174,10 +176,16 @@ run_request <- function(r, observations=NULL) {
   result$panels<-lapply(mods$items,function(z) {
     summary<-summarize_distribution(z$posterior,r$level);pc<-curve(z$posterior,c(summary$interval$lower,summary$interval$upper,summary$median$value))
     mask<-pc$x>=summary$interval$lower & pc$x<=summary$interval$upper
-    bounds<-dq(z$posterior,c(0.001,0.999));prior_curve<-if(is.null(z$prior))NULL else curve(z$prior)
-    expanded<-if(is.null(z$prior))bounds else range(c(bounds,dq(z$prior,c(0.001,0.999)),z$truth))
-    prior_summary<-if(is.null(z$prior))NULL else summarize_distribution(z$prior,r$level)
-    list(target=z$target,truth=z$truth,posterior=z$posterior,prior=z$prior,summary=summary,prior_summary=prior_summary,curve=pc,prior_curve=prior_curve,shade=list(x=pc$x[mask],y=pc$y[mask]),focus=unname(bounds),expanded=unname(expanded),boundary_note=if(z$posterior$type=="beta" || z$posterior$type=="gamma") "Boundary modes may be limiting maxima. Infinite endpoint densities are not drawn." else "")
+    bounds<-dq(z$posterior,c(0.001,0.999));prior_summary<-if(is.null(z$prior))NULL else summarize_distribution(z$prior,r$level,strict=FALSE)
+    prior_bounds<-if(is.null(z$prior))numeric() else dq(z$prior,c(0.001,0.999))
+    plot_note<-if(any(!is.finite(prior_bounds)))"The prior has tails beyond numerical plotting precision. The posterior remains valid; unavailable prior limits are marked below." else ""
+    expanded<-range(c(bounds,prior_bounds[is.finite(prior_bounds)],z$truth,summary$mode$values))
+    # Evaluate both densities across the displayed domain, including near the other peak.
+    domain<-seq(expanded[1],expanded[2],length.out=401)
+    prior_curve<-if(is.null(z$prior))NULL else curve(z$prior,c(pc$x,domain))
+    pc<-curve(z$posterior,c(pc$x,domain,if(is.null(prior_curve))numeric() else prior_curve$x))
+    mask<-pc$x>=summary$interval$lower & pc$x<=summary$interval$upper
+    list(target=z$target,truth=z$truth,posterior=z$posterior,prior=z$prior,summary=summary,prior_summary=prior_summary,curve=pc,prior_curve=prior_curve,shade=list(x=pc$x[mask],y=pc$y[mask]),focus=unname(bounds),expanded=unname(expanded),plot_note=plot_note,boundary_note=if(z$posterior$type=="beta" || z$posterior$type=="gamma") "Boundary modes may be limiting maxima. Infinite endpoint densities are not drawn." else "")
   })
   result$status<-"posterior";result$note<-mods$note;result$formula<-mods$formula;result
 }
