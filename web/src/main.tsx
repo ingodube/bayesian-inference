@@ -71,7 +71,10 @@ function Chart({ figure }: { figure: any }) {
       if (active) setError(String(e));
     });
     const observer = new ResizeObserver(() => {
-      if ((el as any).data) void Plotly.Plots.resize(el);
+      if (active && el.isConnected && el.offsetWidth > 0 && (el as any).data) {
+        // Plotly defers resize; a model change may unmount the plot before it runs.
+        void Plotly.Plots.resize(el).catch(() => {});
+      }
     });
     observer.observe(el);
     return () => {
@@ -79,12 +82,10 @@ function Chart({ figure }: { figure: any }) {
       observer.disconnect();
     };
   }, [figure]);
-  useEffect(
-    () => () => {
-      if (ref.current) Plotly.purge(ref.current);
-    },
-    [],
-  );
+  useEffect(() => {
+    const el = ref.current;
+    return () => { if (el) Plotly.purge(el); };
+  }, []);
   return (
     <>
       {error && <p role="alert">{error}</p>}
