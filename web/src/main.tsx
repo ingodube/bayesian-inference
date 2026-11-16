@@ -73,7 +73,7 @@ function Chart({ figure }: { figure: any }) {
     const observer = new ResizeObserver(() => {
       if (active && el.isConnected && el.offsetWidth > 0 && (el as any).data) {
         // Plotly defers resize; a model change may unmount the plot before it runs.
-        void Plotly.Plots.resize(el).catch(() => {});
+        void Promise.resolve(Plotly.Plots.resize(el)).catch(() => {});
       }
     });
     observer.observe(el);
