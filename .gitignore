@@ -1,0 +1,16 @@
+.venv/
+node_modules/
+web/dist/
+web/public/vendor/
+web/public/engine.R
+web/public/manifest.json
+web/public/figures.json
+web/public/bindings.json
+artifacts/
+__pycache__/
+.pytest_cache/
+*.tsbuildinfo
+.Rhistory
+.RData
+renv/library/
+renv/staging/
