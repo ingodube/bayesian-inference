@@ -17,6 +17,7 @@ dd <- function(d,x) switch(d$type,
   sqrtig=exp(log(2)+d$a*log(d$b)-lgamma(d$a)-(2*d$a+1)*log(x)-d$b/x^2),
   normal=dnorm(x,d$m,sqrt(d$v)), student=dt((x-d$m)/sqrt(d$v),d$df)/sqrt(d$v))
 moment <- function(value, status="finite", reason="") {
+  if(is.infinite(value)) return(list(value=NULL,status="numerical_limit",reason="The value exceeds numerical precision."))
   if(!is.finite(value)) return(list(value=NULL,status="undefined",reason=reason))
   list(value=value,status=status,reason="")
 }
@@ -48,6 +49,7 @@ summarize_distribution <- function(d,level,strict=TRUE) {
 curve <- function(d, extra=numeric()) {
   p<-sort(unique(c(seq(0.0005,0.9995,length.out=401),seq(0.01,0.99,length.out=250))))
   quantiles<-dq(d,p); finite<-quantiles[is.finite(quantiles)]
+  if(length(finite)<2)finite<-sort(unique(c(finite,extra[is.finite(extra)])))
   if(length(finite)<2)stop("Distribution cannot be plotted at numerical precision.")
   bounds<-range(finite); x<-sort(unique(c(finite,seq(bounds[1],bounds[2],length.out=301),extra[is.finite(extra)])))
   if(d$type %in% c("ig","sqrtig","gamma")) x<-x[x>0]

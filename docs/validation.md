@@ -3,7 +3,7 @@
 ## Automated gates
 
 - Native R tests cover hand-calculated updates, Normal joint marginals, distribution equivalences, density normalization, credible mass, boundary modes, undefined moments, reference posterior propriety, Rayleigh transformation and preservation of sample prefixes.
-- Cross-runtime checks use 21 seeded scenarios at n=2,500: every likelihood, each Normal mode, conjugate/reference priors and Rayleigh scale transformation. Absolute tolerance is 1e-8 plus relative tolerance 1e-6. R version strings are intentionally excluded.
+- Cross-runtime checks use 21 seeded scenarios at n=2,500 (every likelihood, each Normal mode, conjugate/reference priors and Rayleigh scale transformation), two numerical-limit regressions at n=100, and the 200-case stress matrix. Absolute tolerance is 1e-8 plus relative tolerance 1e-6. R version strings are intentionally excluded.
 - Python verifies published kernel identity and SHA-256 hashes, Plotly trace designs and binding contracts.
 - Node verifies chart binding without mutation of the Python definitions, missing prior curves, coincident estimator labels and range selection.
 - TypeScript checks and the production build must pass before deployment.

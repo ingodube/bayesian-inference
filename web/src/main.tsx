@@ -107,7 +107,7 @@ function SummaryRow({ name, s }: { name: string; s: Summary }) {
     <tr>
       <th>{name}</th>
       <td title={s.mean.reason}>{fmt(s.mean.value)}</td>
-      <td>{fmt(s.median.value)}</td>
+      <td title={s.median.reason}>{s.median.status === "numerical_limit" ? "Beyond numeric range" : fmt(s.median.value)}</td>
       <td>{modeText(s)}</td>
       <td>
         {s.interval.lower == null ? "Beyond numeric range" : fmt(s.interval.lower)} – {s.interval.upper == null ? "Beyond numeric range" : fmt(s.interval.upper)}

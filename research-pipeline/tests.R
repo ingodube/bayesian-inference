@@ -54,6 +54,9 @@ q<-req('normal','variance');q$prior$a<-.001;q$prior$b<-.001
 out<-run_request(q)
 check(out$status=='posterior','Heavy-tailed proper prior must not hide valid posterior')
 check(nzchar(out$panels[[1]]$plot_note),'Numerical prior tail truncation disclosed')
+q$prior$a<-1e-8;out<-run_request(q)
+check(out$status=='posterior','Unrepresentable prior quantiles still allow posterior-domain plotting')
+check(out$panels[[1]]$prior_summary$median$status=='numerical_limit','Unrepresentable median is not an undefined moment')
 q<-req('normal','mean');q$prior$m<--100;q$prior$v<-.0001
 out<-run_request(q);p<-out$panels[[1]]
 check(min(p$prior_curve$x)<=min(p$focus)&&max(p$prior_curve$x)>=max(p$focus),'Prior evaluated across posterior viewport')
