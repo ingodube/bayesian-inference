@@ -19,7 +19,7 @@ def figure(kind):
         template="none", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Segoe UI, Arial, sans-serif", size=12, color="#26383d"),
         margin=dict(l=60, r=24, t=26, b=62), height=350,
-        hovermode="closest", legend=dict(orientation="h", y=-0.22, x=0),
+        hovermode="closest", dragmode="pan", legend=dict(orientation="h", y=-0.22, x=0),
         xaxis=dict(title="Observed value" if kind == "observed" else "Parameter value", showgrid=False, zeroline=False),
         yaxis=dict(title="Density", gridcolor="#e1e6e3", zeroline=False, rangemode="tozero"),
         hoverlabel=dict(bgcolor="#ffffff", font_color="#26383d"),
@@ -32,7 +32,7 @@ def figure(kind):
                       hovertemplate="Value: %{x:.4g}<br>Height: %{y:.4g}<extra>Generating distribution</extra>")
     else:
         # A wrapped mobile legend must not share space with the x-axis title.
-        f.update_layout(height=420, legend=dict(y=1.04, yanchor="bottom"))
+        f.update_layout(height=420, legend=dict(y=1, yref="container", yanchor="top"))
         f.add_scatter(name="Credible interval", x=[], y=[], mode="lines", fill="tozeroy",
                       line=dict(width=0), fillcolor="rgba(21,121,119,0.16)", hoverinfo="skip")
         f.add_scatter(name="Prior", x=[], y=[], mode="lines", line=dict(color="#bb8855", width=2, dash="dash"))

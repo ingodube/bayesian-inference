@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { createRoot } from "react-dom/client";
-import Plotly from "plotly.js-basic-dist-min";
+import { Chart } from "./Chart";
 import { catalog, priorFamily } from "./catalog";
 import { compute, restartEngine } from "./engine";
 import { array, bindFigure, posteriorFigure } from "./figures.mjs";
@@ -53,47 +53,6 @@ function NumberField({
     </label>
   );
 }
-function Chart({ figure }: { figure: any }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    const el = ref.current!;
-    let active = true;
-    Plotly.react(el, figure.data, figure.layout, {
-      responsive: true,
-      displayModeBar: false,
-      displaylogo: false,
-      scrollZoom: false,
-    }).catch((e) => {
-      if (active) setError(String(e));
-    });
-    const observer = new ResizeObserver(() => {
-      if (active && el.isConnected && el.offsetWidth > 0 && (el as any).data) {
-        // Plotly defers resize; a model change may unmount the plot before it runs.
-        void Promise.resolve(Plotly.Plots.resize(el)).catch(() => {});
-      }
-    });
-    observer.observe(el);
-    return () => {
-      active = false;
-      observer.disconnect();
-    };
-  }, [figure]);
-  useEffect(() => {
-    const el = ref.current;
-    return () => { if (el) Plotly.purge(el); };
-  }, []);
-  return (
-    <>
-      {error && <p role="alert">{error}</p>}
-      <div
-        ref={ref}
-        className="chart"
-        aria-label="Interactive statistical chart"
-      />
-    </>
-  );
-}
 function modeText(s: Summary) {
   const vals = array(s.mode.values);
   if (s.mode.status === "all_values") return "Every value in (0, 1)";
@@ -119,13 +78,15 @@ function PosteriorPanel({
   panel,
   defs,
   bindings,
+  viewKey,
 }: {
   panel: Panel;
+  viewKey: string;
   defs: any;
   bindings: any;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const figure = posteriorFigure(defs, bindings, panel, expanded);
+  const figure = useMemo(() => posteriorFigure(defs, bindings, panel, expanded), [defs, bindings, panel, expanded]);
   return (
     <article className="posterior-panel">
       <div className="plot-heading">
@@ -139,7 +100,7 @@ function PosteriorPanel({
           Include prior range
         </label>
       </div>
-      <Chart figure={figure} />
+      <Chart figure={figure} viewKey={viewKey + ":" + expanded} />
       {!expanded && (panel.truth < panel.focus[0] || panel.truth > panel.focus[1]) && <p className="notice">True generating value: {fmt(panel.truth)} — outside the posterior-focused view. Select “Include prior range” to include it.</p>}
       {panel.plot_note && <p className="notice">{panel.plot_note}</p>}
       <div className="table-wrap">
@@ -416,21 +377,15 @@ function App() {
       </select>
     </label>
   );
-  let observedFigure: any = null;
-  if (result && presentation) {
-    observedFigure = bindFigure(
-      presentation[0].observed,
-      presentation[1].observed,
-      result.observed,
-    );
-    observedFigure.layout.yaxis.title = {
-      text:
-        result.observed.discrete && !result.observed.note.includes("grouped")
-          ? "Probability"
-          : "Density",
-    };
-    if (!result.observed.discrete) observedFigure.data[1].mode = "lines";
-  }
+  const observedFigure = useMemo(() => {
+    if (!result || !presentation) return null;
+    const figure = bindFigure(presentation[0].observed, presentation[1].observed, result.observed);
+    figure.layout.yaxis.title = { text: result.observed.discrete && !result.observed.note.includes("grouped") ? "Probability" : "Density" };
+    if (!result.observed.discrete) figure.data[1].mode = "lines";
+    return figure;
+  }, [result, presentation]);
+  const sampleViewKey = result ? JSON.stringify([result.request.model, result.request.gen, result.request.n, result.request.seed]) : "";
+  const inferenceViewKey = result ? JSON.stringify(result.request) : "";
   const ready = result && !busy && !error;
   return (
     <>
@@ -916,7 +871,7 @@ function App() {
                         <strong>{fmt(result.sample.variance)}</strong>
                       </div>
                     </div>
-                    <Chart figure={observedFigure} />
+                    <Chart figure={observedFigure} viewKey={sampleViewKey} />
                     <p className="small-note">
                       {result.observed.note} Sample variance uses n − 1.
                     </p>
@@ -953,6 +908,7 @@ function App() {
                           <PosteriorPanel
                             key={model + mode + i}
                             panel={p}
+                            viewKey={inferenceViewKey + ":" + i}
                             defs={presentation[0]}
                             bindings={presentation[1]}
                           />

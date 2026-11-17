@@ -381,8 +381,14 @@ details p {
   width: 100%;
   min-width: 0;
   min-height: 350px;
-  touch-action: pan-y;
 }
+.chart .nsewdrag { touch-action: none; }
+.chart:focus-visible { outline: 2px solid var(--teal, #087f80); outline-offset: 3px; }
+.chart-tools { display: flex; justify-content: flex-end; gap: 6px; margin: 8px 0; }
+.chart-tools button { min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); background: transparent; color: #26383d; border-radius: 4px; font-size: 13px; }
+.chart-tools button:nth-child(-n+2) { font-size: 20px; line-height: 1; }
+.chart-tools button:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); }
+.chart-hint { font-size: 11px; line-height: 1.6; color: var(--muted); margin: 8px 0 18px; }
 .data-section {
   padding-bottom: 30px;
   border-bottom: 1px solid var(--line);

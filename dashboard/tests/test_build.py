@@ -20,5 +20,8 @@ def test_plotly_contract_contains_visuals_and_explicit_bindings():
     bindings = json.loads((PUBLIC / 'bindings.json').read_text())
     assert [trace['name'] for trace in figures['posterior']['data']] == ['Credible interval', 'Prior', 'Posterior']
     assert figures['posterior']['data'][1]['line']['dash'] == 'dash'
+    assert figures['observed']['layout']['dragmode'] == figures['posterior']['layout']['dragmode'] == 'pan'
+    assert figures['posterior']['layout']['legend']['yref'] == 'container'
+    assert figures['posterior']['layout']['legend']['yanchor'] == 'top'
     assert bindings['posterior']['data.2.y'] == 'curve.y'
     assert set(figures['markers']) == {'truth', 'mean', 'median', 'mode'}
